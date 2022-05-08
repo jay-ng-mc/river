@@ -81,18 +81,20 @@ class OptionNode(DTBranch):
     def next(self, x):
         return self.children
 
-    def walk(self, x, until_leaf=True) -> Iterable[Iterable[Union["Branch", "Leaf", "OptionNode"]]]:
+    def walk(self, x, until_leaf=True):
         """Iterate over the nodes of the path induced by x."""
-        yield self
         try:
-            yield from self.next(x).walk(x, until_leaf)
+            for node in self.next(x):
+                yield from node.walk(x, until_leaf)
+                yield None # breaker between the branches
         except KeyError:
             if until_leaf:
                 _, node = self.most_common_path()
                 yield node
-                yield from node.walk(x, until_leaf)
+                for node in self.next(x):
+                    yield from node.walk(x, until_leaf)
     
-    def traverse(self, x, until_leaf=True) -> Iterable["Leaf"]:
+    def traverse(self, x, until_leaf=True):
         """Return the leaves corresponding to the given input.
 
         Alternate option branches are also included.
@@ -107,17 +109,10 @@ class OptionNode(DTBranch):
         """
 
         found_nodes = []
-        for node in self.walk(x, until_leaf=until_leaf):
-            if (
-                isinstance(node, AdaBranchRegressor)
-                and node._alternate_tree is not None
-            ):
-                if isinstance(node._alternate_tree, AdaBranchRegressor):
-                    found_nodes.append(
-                        node._alternate_tree.traverse(x, until_leaf=until_leaf)
-                    )
-                else:
-                    found_nodes.append(node._alternate_tree)
+        prev = None
+        for node in self.walk(x, until_leaf):
+            if node is None and prev is not None:
+                found_nodes.append(prev)
 
         found_nodes.append(node)  # noqa
         return found_nodes
