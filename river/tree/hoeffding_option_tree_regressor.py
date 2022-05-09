@@ -1,4 +1,3 @@
-import typing
 from copy import deepcopy
 
 from river import base
@@ -6,7 +5,7 @@ from river import base
 from .hoeffding_tree_regressor import HoeffdingTreeRegressor
 from .nodes.branch import DTBranch, OptionNode
 from .nodes.leaf import HTLeaf
-from .nodes.htr_nodes import LeafAdaptive, LeafMean, LeafModel
+from .nodes.htr_nodes import LeafModel
 from .splitter import Splitter
 
 

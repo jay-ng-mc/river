@@ -1,6 +1,5 @@
 import abc
 import math
-import datetime
 
 from ..base import Branch
 
