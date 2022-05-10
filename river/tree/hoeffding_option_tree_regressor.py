@@ -1,11 +1,10 @@
 from copy import deepcopy
 
 from river import base
-
 from .hoeffding_tree_regressor import HoeffdingTreeRegressor
 from .nodes.branch import DTBranch, OptionNode
-from .nodes.leaf import HTLeaf
 from .nodes.htr_nodes import LeafModel
+from .nodes.leaf import HTLeaf
 from .splitter import Splitter
 
 
@@ -97,24 +96,25 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
     >>> evaluate.progressive_val_score(dataset, model, metric)
     MAE: 0.782258
     """
+
     def __init__(
-        self,
-        grace_period: int = 200,
-        max_depth: int = None,
-        split_confidence: float = 1e-7,
-        tie_threshold: float = 0.05,
-        leaf_prediction: str = "model",
-        leaf_model: base.Regressor = None,
-        model_selector_decay: float = 0.95,
-        nominal_attributes: list = None,
-        splitter: Splitter = None,
-        min_samples_split: int = 5,
-        binary_split: bool = False,
-        max_size: int = 100,
-        memory_estimate_period: int = 1000000,
-        stop_mem_management: bool = False,
-        remove_poor_attrs: bool = False,
-        merit_preprune: bool = True
+            self,
+            grace_period: int = 200,
+            max_depth: int = None,
+            split_confidence: float = 1e-7,
+            tie_threshold: float = 0.05,
+            leaf_prediction: str = "model",
+            leaf_model: base.Regressor = None,
+            model_selector_decay: float = 0.95,
+            nominal_attributes: list = None,
+            splitter: Splitter = None,
+            min_samples_split: int = 5,
+            binary_split: bool = False,
+            max_size: int = 100,
+            memory_estimate_period: int = 1000000,
+            stop_mem_management: bool = False,
+            remove_poor_attrs: bool = False,
+            merit_preprune: bool = True
     ):
         if not leaf_prediction == super()._MODEL:
             print(
@@ -172,14 +172,13 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
             self._root = OptionNode(1, 0, actual_root)
         super().learn_one(x, y, sample_weight=sample_weight)
 
-
     def predict_one(self, x):
         pred = 0.0
         if self._root is not None:
             found_nodes = [self._root]
             if isinstance(self._root, DTBranch):
                 found_nodes = self._root.traverse(x, until_leaf=True)
-            if type(found_nodes) is not list: # handle cases where 
+            if type(found_nodes) is not list:  # handle cases where
                 found_nodes = [found_nodes]
             for leaf in found_nodes:
                 pred += leaf.prediction(x, tree=self)
@@ -215,9 +214,9 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
         )
 
     def _attempt_to_split(
-        self, leaf: HTLeaf, parent: DTBranch, parent_branch: int, **kwargs
+            self, leaf: HTLeaf, parent: DTBranch, parent_branch: int, **kwargs
     ):
-        """Attempt to split a node.
+        """Attempt to split a node, in case of ambiguity, use Options
 
         If the target's variance is high at the leaf node, then:
 
@@ -229,6 +228,9 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
            3.1 Replace the leaf node by a split node.
            3.2 Add a new leaf node on each branch of the new split node.
            3.3 Update tree's metrics
+
+        4. Else if there is ambiguity in splits with the Hoeffding-split:
+           4.1 Use options to split on all the competitive options
 
         Optional: Disable poor attribute. Depends on the tree's configuration.
 
@@ -260,9 +262,9 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
             best_suggestion = best_split_suggestions[-1]
             second_best_suggestion = best_split_suggestions[-2]
             if best_suggestion.merit > 0.0 and (
-                second_best_suggestion.merit / best_suggestion.merit
-                < 1 - hoeffding_bound
-                or hoeffding_bound < self.tie_threshold
+                    second_best_suggestion.merit / best_suggestion.merit
+                    < 1 - hoeffding_bound
+                    or hoeffding_bound < self.tie_threshold
             ):
                 should_split = True
             if self.remove_poor_attrs:
@@ -272,14 +274,14 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
                 # Add any poor attribute to set
                 for suggestion in best_split_suggestions:
                     if (
-                        suggestion.feature
-                        and suggestion.merit / best_suggestion.merit
-                        < best_ratio - 2 * hoeffding_bound
+                            suggestion.feature
+                            and suggestion.merit / best_suggestion.merit
+                            < best_ratio - 2 * hoeffding_bound
                     ):
                         poor_attrs.add(suggestion.feature)
                 for poor_att in poor_attrs:
                     leaf.disable_attribute(poor_att)
-            if not should_split: # if multiple competitive split candidates, no clear winner
+            if not should_split:  # if multiple competitive split candidates, no clear winner
                 should_option_split = True
         if should_split:
             split_decision = best_split_suggestions[-1]
@@ -310,9 +312,10 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
             # Manage memory
             self._enforce_size_limit()
         elif should_option_split:
-            option_node = OptionNode(len(best_split_suggestions), leaf.depth+1) # option node at same depth as its children
+            option_node = OptionNode(len(best_split_suggestions),
+                                     leaf.depth + 1)  # option node at same depth as its children
             self._n_active_leaves -= 1
-            for split_decision in best_split_suggestions[1:]: # first suggestion is always null split
+            for split_decision in best_split_suggestions[1:]:  # first suggestion is always null split
                 branch = self._branch_selector(
                     split_decision.numerical_feature, split_decision.multiway_split
                 )
@@ -329,22 +332,22 @@ class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
                 self._root = option_node
             else:
                 parent.children[parent_branch] = option_node
-            
+
             # Manage memory
             self._enforce_size_limit()
         elif (
-            len(best_split_suggestions) >= 2
-            and best_split_suggestions[-1].merit > 0
-            and best_split_suggestions[-2].merit > 0
+                len(best_split_suggestions) >= 2
+                and best_split_suggestions[-1].merit > 0
+                and best_split_suggestions[-2].merit > 0
         ):
             last_check_ratio = (
-                best_split_suggestions[-2].merit / best_split_suggestions[-1].merit
+                    best_split_suggestions[-2].merit / best_split_suggestions[-1].merit
             )
             last_check_vr = best_split_suggestions[-1].merit
 
             leaf.manage_memory(
                 split_criterion, last_check_ratio, last_check_vr, hoeffding_bound
             )
-        
+
         if any([True for leaf in leaves if not isinstance(leaf, LeafModel)]):
             print('debug')
