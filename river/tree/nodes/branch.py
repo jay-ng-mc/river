@@ -106,7 +106,7 @@ class OptionNode(DTBranch):
         x
             The input instance.
         until_leaf
-            Whether or not branch nodes can be returned in case of missing features or emerging
+            Whether branch nodes can be returned in case of missing features or emerging
             feature categories.
         """
 
