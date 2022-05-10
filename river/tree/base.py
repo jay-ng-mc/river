@@ -71,7 +71,8 @@ class Branch(Base, abc.ABC):
     
     @property
     def n_option_branches(self):
-        return 0 + sum(child.n_option_branches for child in self.children) # 0 unless is option node
+        """Number of option branches"""
+        return 0 + sum(child.n_option_branches for child in self.children)  # 0 unless is option node
 
     @property
     def n_option_nodes(self):

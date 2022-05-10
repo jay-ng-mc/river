@@ -41,6 +41,7 @@ class DTBranch(Branch):
         """
         pass
 
+
 class OptionNode(DTBranch):
     """Wrapper node containing all parallel option branches as its children. Doesn't increment depth.
     Options are branches too DEBUG: add reference to paper
@@ -64,20 +65,12 @@ class OptionNode(DTBranch):
     kwargs
         Other parameters passed to the learning node.
     """
-    # def __init__(self, num_options, stats_per_splitter, depth, splitters, leaf_model, **kwargs):
-    #     assert num_options == len(stats_per_splitter) == len(splitters), \
-    #         'Length of stats_per_splitter and of splitters does not match number of leaf options in option node'
-    #     # create children (wrapped option nodes of some subclass of DTBranch)
-    #     wrapped_options = []
-    #     for i in range(num_options):
-    #         option = super().__init__(stats_per_splitter[i], depth, splitters[i], leaf_model, **kwargs)
-    #         wrapped_options.append(option)
-    #     self.wrapped_options = wrapped_options
+
     def __init__(self, num_options, depth, *children, **kwargs):
         super().__init__(None, *children)
         self.num_options = num_options
         self.depth = depth
-    
+
     @property
     def n_option_branches(self):
         return len(self.children) + sum(child.n_option_branches for child in self.children)
@@ -95,14 +88,14 @@ class OptionNode(DTBranch):
         try:
             for node in self.next(x):
                 yield from node.walk(x, until_leaf)
-                yield None # breaker between the branches
+                yield None  # breaker between the branches
         except KeyError:
             if until_leaf:
                 _, node = self.most_common_path()
                 yield node
                 for node in self.next(x):
                     yield from node.walk(x, until_leaf)
-    
+
     def traverse(self, x, until_leaf=True):
         """Return the leaves corresponding to the given input.
 
@@ -124,9 +117,8 @@ class OptionNode(DTBranch):
                 found_nodes.append(prev)
             prev = node
 
-        # found_nodes.append(node)  # noqa
         return found_nodes
-    
+
     def branch_no(self, x):
         pass
 
@@ -147,9 +139,10 @@ class OptionNode(DTBranch):
 
     def most_common_path(self):
         pass
-    
+
     def repr_split(self):
         pass
+
 
 class NumericBinaryBranch(DTBranch):
     def __init__(self, stats, feature, threshold, depth, left, right, **attributes):

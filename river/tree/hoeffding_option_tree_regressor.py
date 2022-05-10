@@ -10,7 +10,93 @@ from .splitter import Splitter
 
 
 class HoeffdingOptionTreeRegressor(HoeffdingTreeRegressor):
+    """Hoeffding Tree regressor with Options.
 
+    Parameters
+    ----------
+    grace_period
+        Number of instances a leaf should observe between split attempts.
+    max_depth
+        The maximum depth a tree can reach. If `None`, the tree will grow indefinitely.
+    split_confidence
+        Allowed error in split decision, a value closer to 0 takes longer to decide.
+    tie_threshold
+        Threshold below which a split will be forced to break ties.
+    leaf_prediction
+        Prediction mechanism used at leafs.</br>
+        - 'mean' - Target mean</br>
+        - 'model' - Uses the model defined in `leaf_model`</br>
+        - 'adaptive' - Chooses between 'mean' and 'model' dynamically</br>
+    leaf_model
+        The regression model used to provide responses if `leaf_prediction='model'`. If not
+        provided an instance of `river.linear_model.LinearRegression` with the default
+        hyperparameters is used.
+    model_selector_decay
+        The exponential decaying factor applied to the learning models' squared errors, that
+        are monitored if `leaf_prediction='adaptive'`. Must be between `0` and `1`. The closer
+        to `1`, the more importance is going to be given to past observations. On the other hand,
+        if its value approaches `0`, the recent observed errors are going to have more influence
+        on the final decision.
+    nominal_attributes
+        List of Nominal attributes identifiers. If empty, then assume that all numeric attributes
+        should be treated as continuous.
+    splitter
+        The Splitter or Attribute Observer (AO) used to monitor the class statistics of numeric
+        features and perform splits. Splitters are available in the `tree.splitter` module.
+        Different splitters are available for classification and regression tasks. Classification
+        and regression splitters can be distinguished by their property `is_target_class`.
+        This is an advanced option. Special care must be taken when choosing different splitters.
+        By default, `tree.splitter.EBSTSplitter` is used if `splitter` is `None`.
+    min_samples_split
+        The minimum number of samples every branch resulting from a split candidate must have
+        to be considered valid.
+    binary_split
+        If True, only allow binary splits.
+    max_size
+        The max size of the tree, in Megabytes (MB).
+    memory_estimate_period
+        Interval (number of processed instances) between memory consumption checks.
+    stop_mem_management
+        If True, stop growing as soon as memory limit is hit.
+    remove_poor_attrs
+        If True, disable poor attributes to reduce memory usage.
+    merit_preprune
+        If True, enable merit-based tree pre-pruning.
+
+    Notes
+    -----
+    The Hoeffding Tree Regressor (HTR) is an adaptation of the incremental tree algorithm of the
+    same name for classification. Similarly to its classification counterpart, HTR uses the
+    Hoeffding bound to control its split decisions. Differently from the classification algorithm,
+    HTR relies on calculating the reduction of variance in the target space to decide among the
+    split candidates. The smallest the variance at its leaf nodes, the more homogeneous the
+    partitions are. At its leaf nodes, HTR fits either linear models or uses the target
+    average as the predictor.
+
+    Examples
+    --------
+    >>> from river import datasets
+    >>> from river import evaluate
+    >>> from river import metrics
+    >>> from river import tree
+    >>> from river import preprocessing
+
+    >>> dataset = datasets.TrumpApproval()
+
+    >>> model = (
+    ...     preprocessing.StandardScaler() |
+    ...     tree.HoeffdingTreeRegressor(
+    ...         grace_period=100,
+    ...         leaf_prediction='adaptive',
+    ...         model_selector_decay=0.9
+    ...     )
+    ... )
+
+    >>> metric = metrics.MAE()
+
+    >>> evaluate.progressive_val_score(dataset, model, metric)
+    MAE: 0.782258
+    """
     def __init__(
         self,
         grace_period: int = 200,
